@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <dbus/dbus.h>
+#include <gio/gio.h>
+#include <glib-object.h>
 #include <sys/queue.h>
 #include "media_players.h"
 
@@ -37,6 +38,12 @@ players_t *get_players_list(){
 		dbus_error_free(&dbus_error);
 		return NULL;
 	}
+
+	//====== query what clients are on the bus ======
+	//                                                                   destination               object path               interface         method to call
+	//dbus-send                                                   --dest=org.freedesktop.DBus   /org/freedesktop/DBus   org.freedesktop.DBus   .ListNames
+	DBusMessage *available_clients_query = dbus_message_new_method_call("org.freedesktop.DBus","/org/freedesktop/DBus","org.freedesktop.DBus","ListNames");
+	dbus_message_unref(available_clients_query);
 	
 	//====== cleanup and return ======
 	dbus_connection_unref(dbus_connection);
