@@ -232,8 +232,33 @@ media_t *get_currently_playing_media(players_t *players,int flags){
 		const gchar *playback_status = g_variant_get_string(arg_0_variant,NULL);
 		IF_VERBOSE printf("%s: playback status - %s\n",__FUNCTION__,playback_status);
 
-		//====== grab its metatada if it is playing ======
-		if (strcmp(playback_status,"Playing"));
+		//====== store the player's media data only if it is playing or paused ======
+		if (strcmp(playback_status,"Playing") == 0 || strcmp(playback_status,"Paused") == 0){
+
+			//this isnt particularly readable but im gonna use the fact that the second char in "playing", "paused", and "stopped" is unique to determine which one is is using a case statement.
+			switch(playback_status[1]){
+				//  p l aying
+				//    ^
+				case 'l':
+					current_media->playback_status = MEDIA_PLAYING;
+					break;
+				//  p a used
+				//    ^
+				case 'a':
+					current_media->playback_status = MEDIA_PAUSED;
+					break;
+				//  s t opped
+				//    ^
+				case 't':
+					current_media->playback_status = MEDIA_STOPPED;
+					break;
+			}
+
+			IF_VERBOSE printf("%s: getting metadata...\n",__FUNCTION__);
+
+			//====== break because we have our media and we are only returning one struct ======
+			current = NULL; //stopping condition for for loop so we finnish cleanup
+		}
 
 
 		//====== cleanup ======

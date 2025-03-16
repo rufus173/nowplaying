@@ -12,6 +12,7 @@ struct players_entry { //linked list of players
 };
 LIST_HEAD(players_head, players_entry);
 struct media {
+	enum {MEDIA_PLAYING,MEDIA_PAUSED,MEDIA_STOPPED} playback_status;
 };
 struct players { //holds info about players as well as linked list of players
 	pthread_mutex_t mutex;
