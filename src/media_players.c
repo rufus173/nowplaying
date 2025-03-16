@@ -8,10 +8,70 @@
 #include <sys/queue.h>
 #include "media_players.h"
 #include <pthread.h>
+#include <assert.h>
 
 //logging and errors
 #define IF_VERBOSE if(1)
 #define IF_PRINT_ERRORS if(1)
+
+static void _bus_add_remove_callback(GDBusProxy *dbus_proxy,gchar *sender_name,gchar *signal_name,GVariant *parameters,gpointer user_data){
+	players_t *players = user_data;
+	
+	//====== filter for mpris related ones ======
+	GVariant *arg_0 = g_variant_get_child_value(parameters,0);
+	GVariant *arg_1 = g_variant_get_child_value(parameters,1);
+	GVariant *arg_2 = g_variant_get_child_value(parameters,2);
+	const gchar *name = g_variant_get_string(arg_0,NULL);
+	if (strstr(name,"org.mpris.MediaPlayer2") == name){ //org.mpr... at start of string (hence equal to original string pointer)
+		/* debug info 
+		gchar *variant_pretty = g_variant_print(parameters,FALSE);
+		IF_VERBOSE printf("%s: sender %s send signal %s\n",__FUNCTION__,sender_name,signal_name);
+		IF_VERBOSE printf("%s: %s\n",__FUNCTION__,variant_pretty);
+		g_free(variant_pretty);
+		*/
+		
+		//====== aquire mutex ======
+		assert(pthread_mutex_lock(&players->mutex) == 0);
+
+		//====== further filter for added and removed ======
+		if (strcmp(g_variant_get_string(arg_1,NULL),"") == 0){
+			//====== added ======
+			IF_VERBOSE printf("%s: %s added\n",__FUNCTION__,name);
+
+			//allocate entry
+			struct players_entry *new_entry = malloc(sizeof(struct players_entry));
+			memset(new_entry,0,sizeof(struct players_entry));
+			
+			//strdup as we dont own the data right now
+			new_entry->address = strdup(name);
+
+			//add it to list
+			LIST_INSERT_HEAD(players->players_list,new_entry,next);
+		}
+		else if (strcmp(g_variant_get_string(arg_2,NULL),"") == 0){
+			//====== removed ======
+			//find relevant entry
+			for (struct players_entry *current = LIST_FIRST(players->players_list);current != NULL;){
+				struct players_entry *next = LIST_NEXT(current,next);
+				
+				//check if the name matches
+				if (strcmp(name,current->address)){
+					IF_VERBOSE printf("%s: %s removed\n",__FUNCTION__,name);
+					LIST_REMOVE(current,next);
+					free(current->address);
+					free(current);
+				}
+
+				current = next;
+			}
+		}
+		
+		//====== release mutex ======
+		assert(pthread_mutex_unlock(&players->mutex) == 0);
+	}
+	g_variant_unref(arg_0);
+
+}
 
 //====== players ======
 /*
@@ -53,6 +113,9 @@ players_t *get_players_list(){
 		free_players_list(players);
 		return NULL;
 	}
+	
+	//====== connect signal to detect when players added / removed ======
+	g_signal_connect(bus_info_proxy,"g-signal::NameOwnerChanged",G_CALLBACK(_bus_add_remove_callback),players);
 
 	//====== itterate over returned list to find mpris addresses ======
 	IF_VERBOSE printf("%s: searching for mpris addresses...\n",__FUNCTION__);
@@ -100,6 +163,7 @@ frees up the linked list of players
 void free_players_list(players_t *players){
 	pthread_mutex_destroy(&players->mutex);
 	if (players->bus_info_proxy != NULL){
+		g_signal_handlers_disconnect_by_func(players->bus_info_proxy,G_CALLBACK(_bus_add_remove_callback),players);
 		g_object_unref(players->bus_info_proxy);
 	}
 	
