@@ -2,17 +2,23 @@
 #define _MEDIA_PLAYERS_H
 
 #include <sys/queue.h>
+#include <pthread.h>
+#include <gio/gio.h>
 
 //====== structs and types ======
-struct players { //linked list of players
+struct players_entry { //linked list of players
 	char *dest;
 	LIST_ENTRY(players) next;
 };
+LIST_HEAD(players_head, players_entry);
 struct media {
 };
-
-LIST_HEAD(players_head, players);
-typedef struct players_head players_t;
+struct players { //holds info about players as well as linked list of players
+	pthread_mutex_t mutex;
+	GDBusProxy *bus_info_proxy;
+	struct players_head *players_list;
+};
+typedef struct players players_t;
 typedef struct media media_t;
 
 //====== players ======
