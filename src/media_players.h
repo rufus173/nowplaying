@@ -22,7 +22,7 @@ typedef struct players players_t;
 typedef struct media media_t;
 
 //====== players ======
-players_t *get_players_list();
+players_t *get_players_list(int flags);
 void free_players_list(players_t *players);
 int update_players_list(players_t *players);
 

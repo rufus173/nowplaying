@@ -78,7 +78,7 @@ static void _bus_add_remove_callback(GDBusProxy *dbus_proxy,gchar *sender_name,g
 returns linked list of players that then must be freed by free_players_list
 basicaly runs `dbus-send --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames | grep "org.mpris"` and stores the output
 */
-players_t *get_players_list(){
+players_t *get_players_list(int flags){
 	//====== allocate things for later ======
 	players_t *players = malloc(sizeof(players_t));
 	memset(players,0,sizeof(players_t));
@@ -99,6 +99,7 @@ players_t *get_players_list(){
 		IF_PRINT_ERRORS fprintf(stderr,"%s\n",bus_error->message);
 		pthread_mutex_unlock(&players->mutex);
 		free_players_list(players);
+		g_error_free(bus_error);
 		return NULL;
 	}
 	IF_VERBOSE printf("%s: proxy created\n",__FUNCTION__ );
@@ -111,6 +112,7 @@ players_t *get_players_list(){
 		IF_PRINT_ERRORS fprintf(stderr,"%s\n",bus_error->message);
 		pthread_mutex_unlock(&players->mutex);
 		free_players_list(players);
+		g_error_free(bus_error);
 		return NULL;
 	}
 	
@@ -181,10 +183,61 @@ void free_players_list(players_t *players){
 	free(players);
 }
 int update_players_list(players_t *players){
+	return -1;
 }
 
 //====== media ======
+/*
+check each player to see if it is playing
+dbus-send --print-reply --dest=org.mpris.MediaPlayer2.vlc /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:PlaybackStatus
+if it is get its metadata
+dbus-send --print-reply --dest=org.mpris.MediaPlayer2.vlc /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata
+*/
 media_t *get_currently_playing_media(players_t *players,int flags){
+	//====== prep struct to return to user ======
+	media_t *current_media = malloc(sizeof(media_t));
+	//aquire mutex
+	assert(pthread_mutex_lock(&players->mutex) == 0);
+	
+	//====== iterate over all players and find the first one playing something ======
+	for (struct players_entry *current = LIST_FIRST(players->players_list);current != NULL;current = LIST_NEXT(current,next)){
+		IF_VERBOSE printf("%s: checking player %s\n",__FUNCTION__,current->address);
+		GError *bus_error = NULL;
+		GDBusProxy *player_proxy;
+		
+		//====== create proxy object ======
+		player_proxy = g_dbus_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,G_DBUS_PROXY_FLAGS_NONE,NULL,current->address,"/org/mpris/MediaPlayer2","org.freedesktop.DBus.Properties",NULL,&bus_error);
+		if (player_proxy == NULL){
+			IF_PRINT_ERRORS fprintf(stderr,"%s\n",bus_error->message);
+			pthread_mutex_unlock(&players->mutex);
+			free(current_media);
+			g_error_free(bus_error);
+			return NULL;
+		}
+
+		//====== check if it is playing something ======
+		GVariant *dbus_result;
+		GVariant *property = g_variant_new_string("PlaybackStatus");
+		GVariant *parameters = g_variant_new_tuple(&property,1);
+		dbus_result = g_dbus_proxy_call_sync(player_proxy,"Get",parameters,G_DBUS_CALL_FLAGS_NONE,-1,NULL,&bus_error);
+		if (dbus_result == NULL){
+			IF_PRINT_ERRORS fprintf(stderr,"%s\n",bus_error->message);
+			pthread_mutex_unlock(&players->mutex);
+			free(current_media);
+			g_error_free(bus_error);
+			return NULL;
+		}
+
+		//====== cleanup ======
+		g_object_unref(parameters);
+		g_object_unref(player_proxy);
+	}
+
+	//====== return and cleanup ======
+	//release mutex
+	assert(pthread_mutex_unlock(&players->mutex) == 0);
+	return current_media;
 }
 void free_currently_playing_media(media_t *media){
+	free(media);
 }
