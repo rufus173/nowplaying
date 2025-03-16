@@ -7,8 +7,8 @@
 
 //====== structs and types ======
 struct players_entry { //linked list of players
-	char *dest;
-	LIST_ENTRY(players) next;
+	char *address;
+	LIST_ENTRY(players_entry) next;
 };
 LIST_HEAD(players_head, players_entry);
 struct media {

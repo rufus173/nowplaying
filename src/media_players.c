@@ -27,6 +27,8 @@ players_t *get_players_list(){
 	//====== setup players ======
 	pthread_mutex_init(&players->mutex,NULL); //cant fail
 	pthread_mutex_lock(&players->mutex);
+	players->players_list = malloc(sizeof(struct players_head));
+	LIST_INIT(players->players_list);
 
 	//====== create a proxy object ======
 	IF_VERBOSE printf("%s: creating proxy\n",__FUNCTION__);
@@ -43,17 +45,52 @@ players_t *get_players_list(){
 	players->bus_info_proxy = bus_info_proxy;
 
 	//====== call ListNames on bus proxy (get all things on the bus) ======
-	GVariant *names;
-	names = g_dbus_proxy_call_sync(bus_info_proxy,"ListNames",NULL,G_DBUS_CALL_FLAGS_NONE,-1,NULL,&bus_error);
-	if (names == NULL){
+	GVariant *dbus_result;
+	dbus_result = g_dbus_proxy_call_sync(bus_info_proxy,"ListNames",NULL,G_DBUS_CALL_FLAGS_NONE,-1,NULL,&bus_error);
+	if (dbus_result == NULL){
 		IF_PRINT_ERRORS fprintf(stderr,"%s\n",bus_error->message);
 		pthread_mutex_unlock(&players->mutex);
 		free_players_list(players);
 		return NULL;
 	}
 
+	//====== itterate over returned list to find mpris addresses ======
+	IF_VERBOSE printf("%s: searching for mpris addresses...\n",__FUNCTION__);
+	//extract index 1 of argv tuple
+	GVariant *addresses = g_variant_get_child_value(dbus_result,0);
+	//create iterator
+	GVariantIter *address_iterator;
+	address_iterator = g_variant_iter_new(addresses);
+	//iterate
+	for (GVariant *next = g_variant_iter_next_value(address_iterator); next != NULL; next = g_variant_iter_next_value(address_iterator)){
+		//extract string value
+		gsize address_length;
+		const gchar *address_string = g_variant_get_string(next,&address_length);
+
+		//check if it begins with org.mpris.MediaPlayer2
+		if (strstr(address_string,"org.mpris.MediaPlayer2") == address_string){ //ensures it is at the start of the string
+			IF_VERBOSE printf("%s: found %s\n",__FUNCTION__,address_string);
+			//====== add to linked list of players ======
+			//allocate entry
+			struct players_entry *new_entry = malloc(sizeof(struct players_entry));
+			memset(new_entry,0,sizeof(struct players_entry));
+			
+			//strdup as we dont own the data right now
+			new_entry->address = strdup(address_string);
+
+			//add it to list
+			LIST_INSERT_HEAD(players->players_list,new_entry,next);
+		}
+
+		//cleanup
+		g_variant_unref(next);
+	}
+	g_variant_iter_free(address_iterator);
+	IF_VERBOSE printf("%s: search complete\n",__FUNCTION__);
+
 	//====== cleanup and return ======
-	g_variant_unref(names);
+	g_variant_unref(addresses);
+	g_variant_unref(dbus_result);
 	pthread_mutex_unlock(&players->mutex);
 	return players;
 }
@@ -65,6 +102,18 @@ void free_players_list(players_t *players){
 	if (players->bus_info_proxy != NULL){
 		g_object_unref(players->bus_info_proxy);
 	}
+	
+	//free everything related to the linked list
+	for (struct players_entry *current = LIST_FIRST(players->players_list);current != NULL;){
+		struct players_entry *next = LIST_NEXT(current,next);
+		
+		free(current->address);
+		free(current);
+
+		current = next;
+	}
+
+	free(players->players_list);
 	free(players);
 }
 int update_players_list(players_t *players){
