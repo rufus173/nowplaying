@@ -215,10 +215,9 @@ media_t *get_currently_playing_media(players_t *players,int flags){
 			return NULL;
 		}
 
-		//====== check if it is playing something ======
+		//====== get playback status  ======
 		GVariant *dbus_result;
-		GVariant *property = g_variant_new_string("PlaybackStatus");
-		GVariant *parameters = g_variant_new_tuple(&property,1);
+		GVariant *parameters = g_variant_new("(ss)", "org.mpris.MediaPlayer2.Player", "PlaybackStatus");
 		dbus_result = g_dbus_proxy_call_sync(player_proxy,"Get",parameters,G_DBUS_CALL_FLAGS_NONE,-1,NULL,&bus_error);
 		if (dbus_result == NULL){
 			IF_PRINT_ERRORS fprintf(stderr,"%s\n",bus_error->message);
@@ -227,10 +226,21 @@ media_t *get_currently_playing_media(players_t *players,int flags){
 			g_error_free(bus_error);
 			return NULL;
 		}
+		//there is like a nested variant for some reason
+		GVariant *arg_0 = g_variant_get_child_value(dbus_result,0);
+		GVariant *arg_0_variant = g_variant_get_child_value(arg_0,0);
+		const gchar *playback_status = g_variant_get_string(arg_0_variant,NULL);
+		IF_VERBOSE printf("%s: playback status - %s\n",__FUNCTION__,playback_status);
+
+		//====== grab its metatada if it is playing ======
+		if (strcmp(playback_status,"Playing"));
+
 
 		//====== cleanup ======
-		g_object_unref(parameters);
 		g_object_unref(player_proxy);
+		g_variant_unref(arg_0);
+		g_variant_unref(arg_0_variant);
+		g_variant_unref(dbus_result);
 	}
 
 	//====== return and cleanup ======
