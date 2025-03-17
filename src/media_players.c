@@ -200,7 +200,9 @@ media_t *get_currently_playing_media(players_t *players,int flags){
 	assert(pthread_mutex_lock(&players->mutex) == 0);
 	
 	//====== iterate over all players and find the first one playing something ======
-	for (struct players_entry *current = LIST_FIRST(players->players_list);current != NULL;current = LIST_NEXT(current,next)){
+	int stopped = 0;
+	for (struct players_entry *current = LIST_FIRST(players->players_list);(stopped == 0) ||(current != NULL);current = LIST_NEXT(current,next)){
+		//if (current == NULL) break;
 		IF_VERBOSE printf("%s: checking player %s\n",__FUNCTION__,current->address);
 		GError *bus_error = NULL;
 		GDBusProxy *player_proxy;
@@ -257,7 +259,7 @@ media_t *get_currently_playing_media(players_t *players,int flags){
 			IF_VERBOSE printf("%s: getting metadata...\n",__FUNCTION__);
 
 			//====== break because we have our media and we are only returning one struct ======
-			current = NULL; //stopping condition for for loop so we finnish cleanup
+			stopped = 1;
 		}
 
 
