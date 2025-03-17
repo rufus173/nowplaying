@@ -163,6 +163,7 @@ players_t *get_players_list(int flags){
 frees up the linked list of players
 */
 void free_players_list(players_t *players){
+	if (!players) return; //do nothing if players is NULL
 	pthread_mutex_destroy(&players->mutex);
 	if (players->bus_info_proxy != NULL){
 		g_signal_handlers_disconnect_by_func(players->bus_info_proxy,G_CALLBACK(_bus_add_remove_callback),players);
@@ -196,12 +197,13 @@ dbus-send --print-reply --dest=org.mpris.MediaPlayer2.vlc /org/mpris/MediaPlayer
 media_t *get_currently_playing_media(players_t *players,int flags){
 	//====== prep struct to return to user ======
 	media_t *current_media = malloc(sizeof(media_t));
+	memset(current_media,0,sizeof(media_t));
 	//aquire mutex
 	assert(pthread_mutex_lock(&players->mutex) == 0);
 	
 	//====== iterate over all players and find the first one playing something ======
-	int stopped = 0;
-	for (struct players_entry *current = LIST_FIRST(players->players_list);(stopped == 0) ||(current != NULL);current = LIST_NEXT(current,next)){
+	int search_complete = 0;
+	for (struct players_entry *current = LIST_FIRST(players->players_list);(search_complete == 0) && (current != NULL);current = LIST_NEXT(current,next)){
 		//if (current == NULL) break;
 		IF_VERBOSE printf("%s: checking player %s\n",__FUNCTION__,current->address);
 		GError *bus_error = NULL;
@@ -212,7 +214,7 @@ media_t *get_currently_playing_media(players_t *players,int flags){
 		if (player_proxy == NULL){
 			IF_PRINT_ERRORS fprintf(stderr,"%s\n",bus_error->message);
 			pthread_mutex_unlock(&players->mutex);
-			free(current_media);
+			free_currently_playing_media(current_media);
 			g_error_free(bus_error);
 			return NULL;
 		}
@@ -224,7 +226,7 @@ media_t *get_currently_playing_media(players_t *players,int flags){
 		if (dbus_result == NULL){
 			IF_PRINT_ERRORS fprintf(stderr,"%s\n",bus_error->message);
 			pthread_mutex_unlock(&players->mutex);
-			free(current_media);
+			free_currently_playing_media(current_media);
 			g_error_free(bus_error);
 			return NULL;
 		}
@@ -257,9 +259,48 @@ media_t *get_currently_playing_media(players_t *players,int flags){
 			}
 
 			IF_VERBOSE printf("%s: getting metadata...\n",__FUNCTION__);
+			//====== get metadata for playing track ======
+			GVariant *dbus_result;
+			GVariant *parameters = g_variant_new("(ss)", "org.mpris.MediaPlayer2.Player", "Metadata");
+			dbus_result = g_dbus_proxy_call_sync(player_proxy,"Get",parameters,G_DBUS_CALL_FLAGS_NONE,-1,NULL,&bus_error);
+			if (dbus_result == NULL){
+				IF_PRINT_ERRORS fprintf(stderr,"%s\n",bus_error->message);
+				pthread_mutex_unlock(&players->mutex);
+				free_currently_playing_media(current_media);
+				g_error_free(bus_error);
+				return NULL;
+			}
+			//GVariant *metadata_dict = g_variant_get_child_value(dbus_result,0);
+			GVariant *metadata_dict;
+			g_variant_get(dbus_result,"(v)",&metadata_dict);
+
+			gchar *printable_string = g_variant_print(metadata_dict,TRUE);
+			IF_VERBOSE printf("%s: %s | of type %s\n",__FUNCTION__,printable_string,g_variant_get_type_string(metadata_dict));
+			g_free(printable_string);
+			
+			//====== lookup values to fill into struct ======
+			char *title = NULL;
+			g_variant_lookup(metadata_dict,"xesam:title","&s",&title);
+			current_media->title = title ? strdup(title) : NULL;
+
+			//iterate over this one as it can have multiple values
+			char *artist = NULL;
+			GVariantIter *artist_iterator;
+			g_variant_lookup(metadata_dict,"xesam:artist","as",&artist_iterator);
+			current_media->artist = artist ? strdup(artist) : NULL;
+			//only get the first artist as i am lazy
+			g_variant_iter_next(artist_iterator,"&s",&artist);
+			current_media->artist = artist ? strdup(artist) : NULL;
+			//another mini cleanup
+			g_variant_iter_free(artist_iterator);
+
+
+			//mini cleanup
+			g_variant_unref(dbus_result);
+			g_variant_unref(metadata_dict);
 
 			//====== break because we have our media and we are only returning one struct ======
-			stopped = 1;
+			search_complete = 1;
 		}
 
 
@@ -270,11 +311,21 @@ media_t *get_currently_playing_media(players_t *players,int flags){
 		g_variant_unref(dbus_result);
 	}
 
+	//====== if we diddnt find anything return null ======
+	if (!search_complete){
+		assert(pthread_mutex_unlock(&players->mutex) == 0);
+		free_currently_playing_media(current_media);
+		return NULL;
+	}
+
 	//====== return and cleanup ======
 	//release mutex
 	assert(pthread_mutex_unlock(&players->mutex) == 0);
 	return current_media;
 }
 void free_currently_playing_media(media_t *media){
+	if (!media) return; //do nothing if media is NULL
+	free(media->title);
+	free(media->artist);
 	free(media);
 }
