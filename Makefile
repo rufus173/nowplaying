@@ -1,9 +1,14 @@
-CFLAGS=-g -Wall `pkg-config --cflags glib-2.0 gio-2.0`
-LDFLAGS=`pkg-config --libs glib-2.0 gio-2.0` -fsanitize=address
+CC = g++
+CFLAGS = -g -Wall `pkg-config --cflags glib-2.0 gio-2.0`
+LDFLAGS = -fsanitize=address `pkg-config --libs glib-2.0 gio-2.0`
+LDFLAGS+ = -lQtCore -lQtGui
+EXECUTABLE = nowplaying
 
-OBJ_FILES=src/media_players.o src/main.o
+SOURCES = src/media_players/media_players.c src/qt_interface/main.cpp
 
-nowplaying : $(OBJ_FILES)
-	$(CC) $^ $(CFLAGS) -o $@ $(LDFLAGS)
-clean :
-	rm $(OBJ_FILES)
+OBJECTS = $(addsuffix .o,$(basename $(SOURCES)))
+
+.PHONY : nowplaying
+
+$(EXECUTABLE) : $(OBJECTS)
+	$(CC) -o $@ $^ $(LDFLAGS)
