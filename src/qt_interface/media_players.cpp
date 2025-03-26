@@ -33,10 +33,6 @@ MediaPlayers::MediaPlayers(){
 		this->players.push_front(current_player);
 	}
 }
-Player::Player(QString address){
-	this->address = address;
-	this->properties_interface = new QDBusInterface(address,"/org/mpris/MediaPlayer2","org.freedesktop.DBus.Properties",QDBusConnection::sessionBus());
-}
 Track *MediaPlayers::get_current_track(){
 	Track *current_track = new Track;
 	return current_track;
@@ -76,9 +72,18 @@ MediaPlayers::~MediaPlayers(){
 		delete player;
 	}
 }
+Player::Player(QString address){
+	this->address = address;
+	this->properties_interface = new QDBusInterface(address,"/org/mpris/MediaPlayer2","org.freedesktop.DBus.Properties",QDBusConnection::sessionBus());
+	QDBusConnection::sessionBus().connect(address,"/org/mpris/MediaPlayer2","org.freedesktop.DBus.Properties","PropertiesChanged",this,SLOT(dbus_properties_changed()));
+}
 Player::~Player(){
 	delete this->properties_interface;
 }
 QString Player::name(){
+	std::lock_guard<std::mutex> guard(this->attributes_mutex);
 	return this->address;
+}
+void Player::dbus_properties_changed(){
+	qDebug() << this->address << ":" << "property changed";
 }

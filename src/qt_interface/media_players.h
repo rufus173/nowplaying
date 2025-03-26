@@ -12,14 +12,18 @@
 struct Track {
 
 };
-class Player {
+class Player : public QObject{
+	Q_OBJECT
 private:
+	std::mutex attributes_mutex;
 	QString address;
 	QDBusInterface *properties_interface;
 public:
 	Player(QString address);
 	~Player();
 	QString name();
+public slots:
+	void dbus_properties_changed();
 };
 
 class MediaPlayers : public QObject{
