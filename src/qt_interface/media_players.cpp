@@ -24,7 +24,7 @@ MediaPlayers::MediaPlayers(){
 	QStringList mpris_clients = dbus_clients.filter(QRegularExpression("^org.mpris.MediaPlayer2"));
 
 	//====== create callback for when new media players pop up ======
-	//session_bus.connect("org.freedesktop.DBus","/org/freedesktop/DBus","org.freedesktop.DBus","NameOwnerChanged",this,SLOT(dbus_clients_change()));
+	session_bus.connect("org.freedesktop.DBus","/org/freedesktop/DBus","org.freedesktop.DBus","NameOwnerChanged",this,SLOT(dbus_clients_change(QString,QString,QString)));
 
 	//====== add to list of players ======
 	for (const QString &name : mpris_clients){
@@ -42,8 +42,11 @@ Track *MediaPlayers::get_current_track(){
 	return current_track;
 }
 
-void MediaPlayers::dbus_clients_change(){
-	qDebug() << "dbus clients changed";
+void MediaPlayers::dbus_clients_change(QString name, QString old_owner, QString new_owner){
+	//====== filter for mpris media players ======
+	if (name.contains(QRegularExpression("^org.mpris.MediaPlayer2"))){
+		qDebug() << name << "changed from" << old_owner << "to" << new_owner;
+	}
 }
 
 MediaPlayers::~MediaPlayers(){

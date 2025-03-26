@@ -27,12 +27,8 @@ public:
 	MediaPlayers();
 	~MediaPlayers();
 	Track *get_current_track();
-	void epic(){
-		qDebug() << "You shouldnt be here";
-	}
-
 public slots:
-	void dbus_clients_change();
+	void dbus_clients_change(QString name, QString new_owner, QString old_owner);
 
 private:
 	std::list<Player *> players = {};
