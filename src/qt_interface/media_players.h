@@ -19,6 +19,7 @@ private:
 public:
 	Player(QString address);
 	~Player();
+	QString name();
 };
 
 class MediaPlayers : public QObject{

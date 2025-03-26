@@ -45,7 +45,29 @@ Track *MediaPlayers::get_current_track(){
 void MediaPlayers::dbus_clients_change(QString name, QString old_owner, QString new_owner){
 	//====== filter for mpris media players ======
 	if (name.contains(QRegularExpression("^org.mpris.MediaPlayer2"))){
-		qDebug() << name << "changed from" << old_owner << "to" << new_owner;
+		//lets be thread safe for the sake of everyone
+		std::lock_guard<std::mutex> lock(this->players_mutex);
+		
+		if (old_owner == "" && new_owner != ""){
+			//====== new player added =======
+			qDebug() << name << "added";
+			//add it to the list
+			Player *current_player = new Player(name);
+			this->players.push_back(current_player);
+
+		} else if (new_owner == "" && old_owner != ""){
+			//====== player removed ======
+			//find and remove it
+			for (std::list<Player *>::iterator players_iterator = this->players.begin();players_iterator != this->players.end();){
+				if ((*players_iterator)->name() == name){
+					qDebug() << name << "removed";
+					delete *players_iterator;
+					players_iterator = this->players.erase(players_iterator);
+				}else{
+					players_iterator++;
+				}
+			}
+		}
 	}
 }
 
@@ -56,4 +78,7 @@ MediaPlayers::~MediaPlayers(){
 }
 Player::~Player(){
 	delete this->properties_interface;
+}
+QString Player::name(){
+	return this->address;
 }
