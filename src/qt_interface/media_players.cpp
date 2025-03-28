@@ -1,4 +1,5 @@
 #include "media_players.h"
+#include <QMap>
 #include <QDBusConnection>
 #include <QStringList>
 #include <QDebug>
@@ -74,16 +75,32 @@ MediaPlayers::~MediaPlayers(){
 }
 Player::Player(QString address){
 	this->address = address;
-	this->properties_interface = new QDBusInterface(address,"/org/mpris/MediaPlayer2","org.freedesktop.DBus.Properties",QDBusConnection::sessionBus());
-	QDBusConnection::sessionBus().connect(address,"/org/mpris/MediaPlayer2","org.freedesktop.DBus.Properties","PropertiesChanged",this,SLOT(dbus_properties_changed()));
+	//====== get initial properties ======
+	QDBusInterface properties_interface = QDBusInterface(address,"/org/mpris/MediaPlayer2","org.freedesktop.DBus.Properties",QDBusConnection::sessionBus());
+	QDBusReply<QVariantMap> reply = properties_interface.call("GetAll","org.mpris.MediaPlayer2.Player");
+	//check it worked
+	if (!reply.isValid()){
+		throw std::runtime_error(reply.error().message().toStdString());
+	}
+	//store in object's player_properties attribute
+	this->player_properties.insert(reply.value());
+
+	//====== connect properties changing to relevant function ======
+	QDBusConnection::sessionBus().connect(address,"/org/mpris/MediaPlayer2","org.freedesktop.DBus.Properties","PropertiesChanged",this,SLOT(dbus_properties_changed(QString, QVariantMap, QStringList)));
 }
+
 Player::~Player(){
-	delete this->properties_interface;
 }
+
 QString Player::name(){
 	std::lock_guard<std::mutex> guard(this->attributes_mutex);
 	return this->address;
 }
-void Player::dbus_properties_changed(){
-	qDebug() << this->address << ":" << "property changed";
+
+void Player::dbus_properties_changed(QString name, QVariantMap changed_properties, QStringList invalaid_properties){
+	//====== merge new properties with old ones to update them ======
+	this->player_properties.insert(changed_properties);
+	
+	qDebug() << "======" << this->address << "======";
+	qDebug() << this->player_properties;
 }

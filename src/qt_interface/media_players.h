@@ -8,8 +8,10 @@
 #include <mutex>
 #include <QObject>
 #include <QDebug>
+#include <QVariantMap>
 
 struct Track {
+	enum {STATUS_PLAYING,STATUS_PAUSED,STATUS_STOPPED} playback_status;
 
 };
 class Player : public QObject{
@@ -17,13 +19,13 @@ class Player : public QObject{
 private:
 	std::mutex attributes_mutex;
 	QString address;
-	QDBusInterface *properties_interface;
+	QVariantMap player_properties;
 public:
 	Player(QString address);
 	~Player();
 	QString name();
 public slots:
-	void dbus_properties_changed();
+	void dbus_properties_changed(QString, QVariantMap, QStringList);
 };
 
 class MediaPlayers : public QObject{
