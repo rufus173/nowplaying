@@ -74,6 +74,7 @@ MediaPlayers::~MediaPlayers(){
 	}
 }
 Player::Player(QString address){
+	std::lock_guard<std::mutex> guard(this->attributes_mutex);
 	this->address = address;
 	//====== get initial properties ======
 	QDBusInterface properties_interface = QDBusInterface(address,"/org/mpris/MediaPlayer2","org.freedesktop.DBus.Properties",QDBusConnection::sessionBus());
@@ -98,6 +99,7 @@ QString Player::name(){
 }
 
 void Player::dbus_properties_changed(QString name, QVariantMap changed_properties, QStringList invalaid_properties){
+	std::lock_guard<std::mutex> guard(this->attributes_mutex);
 	//====== merge new properties with old ones to update them ======
 	this->player_properties.insert(changed_properties);
 	
