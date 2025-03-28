@@ -17,7 +17,7 @@ struct Track {
 class Player : public QObject{
 	Q_OBJECT
 private:
-	std::mutex attributes_mutex;
+	std::recursive_mutex attributes_mutex;
 	QString address;
 	QVariantMap player_properties;
 public:
@@ -26,6 +26,8 @@ public:
 	QString name();
 public slots:
 	void dbus_properties_changed(QString, QVariantMap, QStringList);
+signals:
+	void started_playing(QString name);
 };
 
 class MediaPlayers : public QObject{
@@ -36,6 +38,7 @@ public:
 	Track *get_current_track();
 public slots:
 	void dbus_clients_change(QString name, QString new_owner, QString old_owner);
+	void move_player_to_front(QString name);
 
 private:
 	std::list<Player *> players = {};
