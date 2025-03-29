@@ -24,6 +24,8 @@ public:
 	Player(QString address);
 	~Player();
 	QString name();
+	QVariantMap *properties();
+	int64_t get_current_position() const;
 public slots:
 	void dbus_properties_changed(QString, QVariantMap, QStringList);
 signals:
@@ -35,11 +37,10 @@ class MediaPlayers : public QObject{
 public:
 	MediaPlayers();
 	~MediaPlayers();
-	Track *get_current_track();
+	double get_current_track_position();
 public slots:
 	void dbus_clients_change(QString name, QString new_owner, QString old_owner);
 	void move_player_to_front(QString name);
-
 private:
 	std::list<Player *> players = {};
 	std::mutex players_mutex;

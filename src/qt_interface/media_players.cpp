@@ -43,10 +43,6 @@ MediaPlayers::MediaPlayers(){
 		QObject::connect(current_player,&Player::started_playing,this,&MediaPlayers::move_player_to_front);
 	}
 }
-Track *MediaPlayers::get_current_track(){
-	Track *current_track = new Track;
-	return current_track;
-}
 
 void MediaPlayers::dbus_clients_change(QString name, QString old_owner, QString new_owner){
 	//====== filter for mpris media players ======
@@ -93,13 +89,17 @@ void MediaPlayers::move_player_to_front(QString name){
 			break;
 		}
 	}
-	qDebug() << this->players;
+	//qDebug() << this->players;
 }
 
 MediaPlayers::~MediaPlayers(){
 	for (Player *player : this->players){
 		delete player;
 	}
+}
+
+double MediaPlayers::get_current_track_position(){
+	return this->players.front()->get_current_position();
 }
 
 
@@ -115,7 +115,7 @@ MediaPlayers::~MediaPlayers(){
 Player::Player(QString address){
 	std::lock_guard<std::recursive_mutex> guard(this->attributes_mutex);
 	this->address = address;
-	//====== get initial properties ======
+
 	QDBusInterface properties_interface = QDBusInterface(address,"/org/mpris/MediaPlayer2","org.freedesktop.DBus.Properties",QDBusConnection::sessionBus());
 	QDBusReply<QVariantMap> reply = properties_interface.call("GetAll","org.mpris.MediaPlayer2.Player");
 	//check it worked
@@ -142,20 +142,36 @@ void Player::dbus_properties_changed(QString name, QVariantMap changed_propertie
 	//ima be so real i have no idea if this is nessecary or not but im doing it just in case
 	std::lock_guard<std::recursive_mutex> guard(this->attributes_mutex);
 
-	qDebug() << "======" << this->address << "======";
+	//qDebug() << "======" << this->address << "======";
+
+	//====== if the player has given an updated time property update it ======
+	if (changed_properties.keys().contains("Position")){
+		//qDebug() << "\nupdated position to" << changed_properties["Position"] << "\n";
+	}
 
 	//====== if it has gone from paused to playing, emit started_playing() ======
 	//this allows the MediaPlayers class to move it to the front of the list
 	if (this->player_properties["PlaybackStatus"].toString() != changed_properties["PlaybackStatus"].toString() && changed_properties["PlaybackStatus"].toString() == "Playing"){
-		qDebug() << "player just started playing";
+		//qDebug() << "player just started playing";
 		emit started_playing(this->address);
 	}
 
 	//====== merge new properties with old ones to update them ======
 	this->player_properties.insert(changed_properties);
 	
-	qDebug() << this->player_properties;
-	qDebug() << "// metadata";
- 	qDebug() << qdbus_cast<QVariantMap>(this->player_properties["Metadata"].value<QDBusArgument>());
+	//qDebug() << this->player_properties;
+	//qDebug() << "// metadata";
+ 	//qDebug() << qdbus_cast<QVariantMap>(this->player_properties["Metadata"].value<QDBusArgument>());
 
+}
+int64_t Player::get_current_position() const{ //no need for mutex as the only attribute we use is the address, which never changes.
+	//get the Position property
+	QDBusInterface properties_interface = QDBusInterface(address,"/org/mpris/MediaPlayer2","org.freedesktop.DBus.Properties",QDBusConnection::sessionBus());
+	QDBusReply<QDBusVariant> reply = properties_interface.call("Get","org.mpris.MediaPlayer2.Player","Position");
+	//check it worked
+	if (!reply.isValid()){
+		throw std::runtime_error(reply.error().message().toStdString());
+	}
+	//qDebug() << "received" << reply.value().variant();
+	return reply.value().variant().toLongLong();
 }
