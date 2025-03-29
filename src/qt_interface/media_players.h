@@ -37,7 +37,8 @@ class MediaPlayers : public QObject{
 public:
 	MediaPlayers();
 	~MediaPlayers();
-	double get_current_track_position();
+	int get_current_track_position();
+	int get_current_track_length();
 public slots:
 	void dbus_clients_change(QString name, QString new_owner, QString old_owner);
 	void move_player_to_front(QString name);

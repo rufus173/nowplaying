@@ -98,8 +98,19 @@ MediaPlayers::~MediaPlayers(){
 	}
 }
 
-double MediaPlayers::get_current_track_position(){
-	return this->players.front()->get_current_position();
+int MediaPlayers::get_current_track_position(){
+	//time is in ms so contert to s
+	return this->players.front()->get_current_position()/1000000;
+}
+int MediaPlayers::get_current_track_length(){
+	 QVariantMap properties = *(this->players.front()->properties());
+	 QVariantMap metadata = qdbus_cast<QVariantMap>(properties["Metadata"].value<QDBusArgument>());
+	 //mpris does not require track length be present, so return a default value if one isnt present
+	 if (metadata.keys().contains("mpris:length")){
+		 return metadata["mpris:length"].toLongLong() / 1000000; //conv to s from ms
+	 }else{
+		 return -1;
+	 }
 }
 
 
@@ -174,4 +185,8 @@ int64_t Player::get_current_position() const{ //no need for mutex as the only at
 	}
 	//qDebug() << "received" << reply.value().variant();
 	return reply.value().variant().toLongLong();
+}
+
+QVariantMap *Player::properties(){
+	return &this->player_properties;
 }

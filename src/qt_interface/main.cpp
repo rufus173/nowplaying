@@ -13,7 +13,7 @@ int main(int argc, char **argv){
 	}
 
 	MediaPlayers media_players = MediaPlayers();
-	media_players.get_current_track_position();
+	qDebug() << media_players.get_current_track_position() << "/" << media_players.get_current_track_length();
 
 	app.exec();
 }
