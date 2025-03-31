@@ -194,16 +194,26 @@ void Player::dbus_properties_changed(QString name, QVariantMap changed_propertie
  	//qDebug() << qdbus_cast<QVariantMap>(this->player_properties["Metadata"].value<QDBusArgument>());
 
 }
-int64_t Player::get_current_position() const{ //no need for mutex as the only attribute we use is the address, which never changes.
-	//get the Position property
-	QDBusInterface properties_interface = QDBusInterface(address,"/org/mpris/MediaPlayer2","org.freedesktop.DBus.Properties",QDBusConnection::sessionBus());
-	QDBusReply<QDBusVariant> reply = properties_interface.call("Get","org.mpris.MediaPlayer2.Player","Position");
-	//check it worked
-	if (!reply.isValid()){
-		throw std::runtime_error(reply.error().message().toStdString());
+int64_t Player::get_current_position(){ //no need for mutex as the only attribute we use is the address, which never changes.
+	//====== if it is stopped, set current track position attribute to 0 ======
+	if (this->player_properties["PlaybackStatus"].toString() == "Stopped") this->current_track_position = 0;
+
+	//====== if its playing, use dbus to get the value ======
+	if (this->player_properties["PlaybackStatus"].toString() == "Playing"){
+		//get the Position property
+		QDBusInterface properties_interface = QDBusInterface(address,"/org/mpris/MediaPlayer2","org.freedesktop.DBus.Properties",QDBusConnection::sessionBus());
+		QDBusReply<QDBusVariant> reply = properties_interface.call("Get","org.mpris.MediaPlayer2.Player","Position");
+		//check it worked
+		if (!reply.isValid()){
+			throw std::runtime_error(reply.error().message().toStdString());
+		}
+		//qDebug() << "received" << reply.value().variant();
+		this->current_track_position = reply.value().variant().toLongLong();
+		return reply.value().variant().toLongLong();
+	//====== if its paused/stopped, retreive from stored value ======
+	}else{
+		return this->current_track_position;
 	}
-	//qDebug() << "received" << reply.value().variant();
-	return reply.value().variant().toLongLong();
 }
 
 QVariantMap *Player::properties(){

@@ -2,6 +2,8 @@
 #include <QTimer>
 #include <QLabel>
 #include <QGridLayout>
+#include <QGraphicsEffect>
+#include <QGraphicsOpacityEffect>
 #include <QDBusConnection>
 #include <QWindow>
 
@@ -21,12 +23,17 @@ int main(int argc, char **argv){
 
 	//====== create the main window ======
 	MainWindow main_window = MainWindow();
+	//====== display everything ======
+	main_window.show();
 
 	app.exec();
 }
-MainWindow::MainWindow(QWidget *parent) : QWidget(parent,Qt::FramelessWindowHint){
-	//mediaplayers object
+MainWindow::MainWindow(QWidget *parent) : QWidget(parent,Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint){
+	//misc
 	this->players = new MediaPlayers();
+
+	//====== main window ======
+	//this->setAttribute(Qt::WA_TranslucentBackground);
 
 	//====== grid layout and widgets ======
 	this->grid = new QGridLayout(this);
@@ -45,8 +52,6 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent,Qt::FramelessWindowHint
 	//                             0.5s
 	this->update_loop_timer->start(500);
 
-	//====== display everything ======
-	this->show();
 }
 void MainWindow::update_ui(){
 	//====== update the time remaining label ======

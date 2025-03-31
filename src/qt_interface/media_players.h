@@ -10,22 +10,19 @@
 #include <QDebug>
 #include <QVariantMap>
 
-struct Track {
-	enum {STATUS_PLAYING,STATUS_PAUSED,STATUS_STOPPED} playback_status;
-
-};
 class Player : public QObject{
 	Q_OBJECT
 private:
 	std::recursive_mutex attributes_mutex;
 	QString address;
 	QVariantMap player_properties;
+	long long int current_track_position = 0;
 public:
 	Player(QString address);
 	~Player();
 	QString name();
 	QVariantMap *properties();
-	int64_t get_current_position() const;
+	int64_t get_current_position();
 public slots:
 	void dbus_properties_changed(QString, QVariantMap, QStringList);
 signals:
