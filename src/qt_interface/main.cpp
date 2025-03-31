@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QTimer>
+#include <QSizePolicy>
 #include <QLabel>
 #include <QGridLayout>
 #include <QGraphicsEffect>
@@ -31,6 +32,7 @@ int main(int argc, char **argv){
 MainWindow::MainWindow(QWidget *parent) : QWidget(parent,Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint){
 	//misc
 	this->players = new MediaPlayers();
+	this->setSizePolicy(QSizePolicy::Maximum,QSizePolicy::Maximum);
 
 	//====== main window ======
 	//this->setAttribute(Qt::WA_TranslucentBackground);
@@ -81,6 +83,9 @@ void MainWindow::update_ui(){
 	QString song_info_text;
 	song_info_text = this->players->get_current_track_name() + " | " + this->players->get_current_track_artist();
 	this->song_info_label->setText(song_info_text);
+
+	//====== update the window size ======
+	this->adjustSize();
 }
 MainWindow::~MainWindow(){
 	delete this->players;
