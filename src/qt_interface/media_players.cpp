@@ -167,27 +167,32 @@ QString Player::name(){
 	return this->address;
 }
 
-void Player::dbus_properties_changed(QString name, QVariantMap changed_properties, QStringList invalaid_properties){
+void Player::dbus_properties_changed(QString name, const QVariantMap changed_properties, QStringList invalaid_properties){
 	//up here threading my safety 
 	//ima be so real i have no idea if this is nessecary or not but im doing it just in case
 	std::lock_guard<std::recursive_mutex> guard(this->attributes_mutex);
 
-	//qDebug() << "======" << this->address << "======";
+	qDebug() << "======" << this->address << "======";
+	qDebug() << "--- from ---\n" << this->player_properties;
 
 	//====== if the player has given an updated time property update it ======
 	if (changed_properties.keys().contains("Position")){
-		//qDebug() << "\nupdated position to" << changed_properties["Position"] << "\n";
+		qDebug() << "\nupdated position to" << changed_properties["Position"] << "\n";
+		this->current_track_position = changed_properties["Position"].toLongLong()/1000000;
 	}
 
 	//====== if it has gone from paused to playing, emit started_playing() ======
 	//this allows the MediaPlayers class to move it to the front of the list
-	if (this->player_properties["PlaybackStatus"].toString() != changed_properties["PlaybackStatus"].toString() && changed_properties["PlaybackStatus"].toString() == "Playing"){
-		//qDebug() << "player just started playing";
-		emit started_playing(this->address);
+	if (this->player_properties["PlaybackStatus"].toString() != changed_properties["PlaybackStatus"].toString()){
+		if (changed_properties["PlaybackStatus"].toString() == "Playing"){
+			//qDebug() << "player just started playing";
+			emit started_playing(this->address);
+		}
 	}
 
 	//====== merge new properties with old ones to update them ======
 	this->player_properties.insert(changed_properties);
+	qDebug() << "--- to ---\n" << this->player_properties;
 	
 	//qDebug() << this->player_properties;
 	//qDebug() << "// metadata";
@@ -212,6 +217,8 @@ int64_t Player::get_current_position(){ //no need for mutex as the only attribut
 		return reply.value().variant().toLongLong();
 	//====== if its paused/stopped, retreive from stored value ======
 	}else{
+		qDebug() << "track paused";
+		qDebug() << this->player_properties["PlaybackStatus"].toString();
 		return this->current_track_position;
 	}
 }
