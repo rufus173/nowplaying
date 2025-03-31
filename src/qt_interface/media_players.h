@@ -39,6 +39,8 @@ public:
 	~MediaPlayers();
 	int get_current_track_position();
 	int get_current_track_length();
+	QString get_current_track_name();
+	QString get_current_track_artist();
 public slots:
 	void dbus_clients_change(QString name, QString new_owner, QString old_owner);
 	void move_player_to_front(QString name);

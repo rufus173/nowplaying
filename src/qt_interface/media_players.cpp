@@ -102,17 +102,36 @@ int MediaPlayers::get_current_track_position(){
 	//time is in ms so contert to s
 	return this->players.front()->get_current_position()/1000000;
 }
+
 int MediaPlayers::get_current_track_length(){
-	 QVariantMap properties = *(this->players.front()->properties());
-	 QVariantMap metadata = qdbus_cast<QVariantMap>(properties["Metadata"].value<QDBusArgument>());
-	 //mpris does not require track length be present, so return a default value if one isnt present
-	 if (metadata.keys().contains("mpris:length")){
-		 return metadata["mpris:length"].toLongLong() / 1000000; //conv to s from ms
-	 }else{
-		 return -1;
-	 }
+	QVariantMap properties = *(this->players.front()->properties());
+	QVariantMap metadata = qdbus_cast<QVariantMap>(properties["Metadata"].value<QDBusArgument>());
+	//mpris does not require track length be present, so return a default value if one isnt present
+	if (metadata.keys().contains("mpris:length")){
+		return metadata["mpris:length"].toLongLong() / 1000000; //conv to s from ms
+	}else{
+		return -1;
+	}
 }
 
+QString MediaPlayers::get_current_track_name(){
+	QVariantMap properties = *(this->players.front()->properties());
+	QVariantMap metadata = qdbus_cast<QVariantMap>(properties["Metadata"].value<QDBusArgument>());
+	if (metadata.keys().contains("xesam:title")){
+		return metadata["xesam:title"].toString(); //conv to s from ms
+	}else{
+		return QString("No Title");
+	}
+}
+QString MediaPlayers::get_current_track_artist(){
+	QVariantMap properties = *(this->players.front()->properties());
+	QVariantMap metadata = qdbus_cast<QVariantMap>(properties["Metadata"].value<QDBusArgument>());
+	if (metadata.keys().contains("xesam:artist")){
+		return metadata["xesam:artist"].toString(); //conv to s from ms
+	}else{
+		return QString("No Artist");
+	}
+}
 
 
 
