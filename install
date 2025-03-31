@@ -1,0 +1,9 @@
+#!/bin/bash
+make
+if [ $EUID -ne 0 ]; then
+	echo "Raising privileges to install..."
+	sudo "$0"
+else
+	install nowplaying /usr/bin
+fi
+make clean

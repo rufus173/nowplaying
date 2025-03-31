@@ -3,9 +3,8 @@
 
 ## Requirements
 
-`libdbus-1-dev`
+qt6 (i gave up on the glib implementation)
 
 ## Installation
 
-`sudo make install` to install
-`make clean` to remove object files used for compiling
+`./configure` then `./install`. will automaticaly cleanup after install

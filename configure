@@ -1,0 +1,2 @@
+#!/bin/bash
+qmake -makefile -recursive src/qt_interface/main.pro
