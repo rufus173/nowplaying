@@ -1,8 +1,14 @@
 #include <QApplication>
-#include <stdio.h>
-#include <unistd.h>
+#include <QLabel>
+#include <QGridLayout>
 #include <QDBusConnection>
+#include <QWindow>
+
+#include <unistd.h>
+#include <stdio.h>
+
 #include "media_players.h"
+#include "main.h"
 int main(int argc, char **argv){
 	QApplication app = QApplication(argc,argv);
 
@@ -12,8 +18,25 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	MediaPlayers media_players = MediaPlayers();
-	qDebug() << media_players.get_current_track_position() << "/" << media_players.get_current_track_length();
+	//====== create the main window ======
+	MainWindow main_window = MainWindow();
 
 	app.exec();
+}
+MainWindow::MainWindow(QWidget *parent){
+	//mediaplayers object
+	this->players = new MediaPlayers();
+
+	//====== grid layout and widgets ======
+	this->grid = new QGridLayout(this);
+	this->song_progress_bar = new QProgressBar();
+	this->song_info_label = new QLabel();
+	this->grid->addWidget(this->song_progress_bar,0,0);
+	this->grid->addWidget(this->song_info_label,0,0);
+
+	//====== display everything ======
+	this->show();
+}
+MainWindow::~MainWindow(){
+	delete this->players;
 }
