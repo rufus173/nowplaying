@@ -7,29 +7,53 @@
 #include <QGraphicsOpacityEffect>
 #include <QDBusConnection>
 #include <QWindow>
+#include <QFile>
 
 #include <unistd.h>
 #include <stdio.h>
+#include <wordexp.h>
 
 #include "media_players.h"
 #include "main.h"
 int main(int argc, char **argv){
 	QApplication app = QApplication(argc,argv);
 
-	//check we are connected to the session bus
+	//====== check we are connected to the session bus ======
 	if (!QDBusConnection::sessionBus().isConnected()){
 		fprintf(stderr,"Could not connect to sesion bus.\n");
 		exit(EXIT_FAILURE);
 	}
 
+	//====== load a custom style sheet if the user has one ======
+	wordexp_t expanded_expression;
+	if (int result = wordexp("~/.config/nowplaying/style.css",&expanded_expression,0) == 0){
+		for (size_t i = 0; i < expanded_expression.we_wordc; i++){
+			qDebug() << "checking" << QString(expanded_expression.we_wordv[i]);
+			QFile stylesheet_file = QFile(expanded_expression.we_wordv[i]);
+			if (stylesheet_file.exists()){
+				stylesheet_file.open(QFile::ReadOnly);
+				QString stylesheet = QLatin1String(stylesheet_file.readAll());
+				app.setStyleSheet(stylesheet);
+				stylesheet_file.close();
+				qDebug() << "using stylesheet" << QString(expanded_expression.we_wordv[i]);
+				break;
+			}
+		}
+		wordfree(&expanded_expression);
+	}else{
+		qDebug() << "wordexp error:" << result;
+	}
+
 	//====== create the main window ======
 	MainWindow main_window = MainWindow();
+	main_window.setWindowFlags(main_window.windowFlags() | Qt::WindowStaysOnTopHint);
+	main_window.setWindowFlags(Qt::Window | Qt::WindowStaysOnTopHint | Qt::X11BypassWindowManagerHint);
 	//====== display everything ======
 	main_window.show();
 
 	app.exec();
 }
-MainWindow::MainWindow(QWidget *parent) : QWidget(parent,Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint){
+MainWindow::MainWindow(QWidget *parent) : QWidget(parent,Qt::FramelessWindowHint){
 	//misc
 	this->players = new MediaPlayers();
 	this->setSizePolicy(QSizePolicy::Maximum,QSizePolicy::Maximum);
