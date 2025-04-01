@@ -67,6 +67,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent,Qt::FramelessWindowHint
 	this->song_progress_bar->setTextVisible(false);
 	this->song_info_label = new QLabel("nothing playing");
 	this->song_remaining_time_label = new QLabel("-/-");
+	this->song_remaining_time_label->setSizePolicy(QSizePolicy::Maximum,QSizePolicy::Maximum);
 	//                                                    row column rowspan columnspan
 	this->grid->addWidget(this->song_progress_bar,        1,  0,     1,      2);
 	this->grid->addWidget(this->song_info_label,          0,  0,     1,      3);
