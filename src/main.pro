@@ -1,6 +1,6 @@
 TEMPLATE = app
-HEADERS += src/media_players.h src/main.h
-SOURCES += src/main.cpp src/media_players.cpp
+HEADERS += media_players.h main.h
+SOURCES += main.cpp media_players.cpp
 TARGET = nowplaying
 QT = core gui dbus
 QT += widgets
