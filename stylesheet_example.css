@@ -1,0 +1,14 @@
+QWidget {
+	background-color: #262626;
+	color: #ffffff;
+	border: 1px solid #8a00e6;
+	border-radius: 5px;
+}
+QProgressBar {
+	height: 20px;
+}
+QProgressBar::chunk {
+	background-color: #0066ff;
+	width: 8px;
+	margin: 1px;
+}
