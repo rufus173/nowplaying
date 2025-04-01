@@ -99,11 +99,16 @@ MediaPlayers::~MediaPlayers(){
 }
 
 int MediaPlayers::get_current_track_position(){
+	//default value if no media players are present
+	if (this->players.empty()) return 0;
 	//time is in ms so contert to s
-	return this->players.front()->get_current_position()/1000000;
+	else return this->players.front()->get_current_position()/1000000;
 }
 
 int MediaPlayers::get_current_track_length(){
+	//====== return a default value if no players are present ======
+	if (this->players.empty()) return 0;
+
 	QVariantMap properties = *(this->players.front()->properties());
 	QVariantMap metadata = qdbus_cast<QVariantMap>(properties["Metadata"].value<QDBusArgument>());
 	//mpris does not require track length be present, so return a default value if one isnt present
@@ -115,6 +120,9 @@ int MediaPlayers::get_current_track_length(){
 }
 
 QString MediaPlayers::get_current_track_name(){
+	//====== return default if no players exist ======
+	if (this->players.empty()) return "Nothing playing";
+
 	QVariantMap properties = *(this->players.front()->properties());
 	QVariantMap metadata = qdbus_cast<QVariantMap>(properties["Metadata"].value<QDBusArgument>());
 	if (metadata.keys().contains("xesam:title")){
@@ -124,6 +132,9 @@ QString MediaPlayers::get_current_track_name(){
 	}
 }
 QString MediaPlayers::get_current_track_artist(){
+	//====== return default if no players exist ======
+	if (this->players.empty()) return "-";
+
 	QVariantMap properties = *(this->players.front()->properties());
 	QVariantMap metadata = qdbus_cast<QVariantMap>(properties["Metadata"].value<QDBusArgument>());
 	if (metadata.keys().contains("xesam:artist")){
