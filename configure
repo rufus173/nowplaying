@@ -1,4 +1,4 @@
 #!/bin/bash
-qmake -makefile -recursive src/qt_interface/main.pro
+qmake -makefile -recursive main.pro
 mkdir -p ~/.config/nowplaying/
 cp --update=none stylesheet_example.css ~/.config/nowplaying/style.css
