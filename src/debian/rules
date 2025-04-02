@@ -2,4 +2,4 @@
 %:
 	dh $@
 override_dh_auto_install:
-	install -D -m 0755 nowplaying $$(pwd)/debian/helloworld/usr/bin/nowplaying
+	install -D -m 0755 nowplaying $$(pwd)/debian/nowplaying/usr/bin/nowplaying
