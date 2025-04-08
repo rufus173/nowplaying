@@ -47,7 +47,6 @@ int main(int argc, char **argv){
 	//====== create the main window ======
 	MainWindow main_window = MainWindow();
 	main_window.setWindowFlags(main_window.windowFlags() | Qt::WindowStaysOnTopHint);
-	main_window.setWindowFlags(Qt::Window | Qt::WindowStaysOnTopHint | Qt::X11BypassWindowManagerHint);
 	//====== display everything ======
 	main_window.show();
 
