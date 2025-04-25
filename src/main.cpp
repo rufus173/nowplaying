@@ -120,12 +120,12 @@ MainWindow::~MainWindow(){
 void MainWindow::mouseMoveEvent(QMouseEvent *event){
 	//this is triggered when the mouse hovers over the widget
 	this->hide();
-	qDebug() << QCursor::pos();
-	qDebug() << this->geometry();
 	//schedule an attempt to reopen the window
 	QTimer::singleShot(1,this,&MainWindow::attemptReappear);
 }
 void MainWindow::attemptReappear(){
 	qDebug()<<"reappearing";
+	qDebug() << QCursor::pos();
+	qDebug() << this->geometry();
 }
 
