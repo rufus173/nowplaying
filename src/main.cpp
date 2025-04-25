@@ -17,6 +17,10 @@
 
 #include "media_players.h"
 #include "main.h"
+
+//#define STYLE_SQUARE
+#define STYLE_LINE
+
 int main(int argc, char **argv){
 	QApplication app = QApplication(argc,argv);
 
@@ -72,10 +76,15 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent,Qt::FramelessWindowHint
 	this->song_remaining_time_label = new QLabel("-/-");
 	this->song_remaining_time_label->setSizePolicy(QSizePolicy::Maximum,QSizePolicy::Maximum);
 	//                                                    row column rowspan columnspan
+#ifdef STYLE_SQUARE
 	this->grid->addWidget(this->song_progress_bar,        1,  0,     1,      2);
 	this->grid->addWidget(this->song_info_label,          0,  0,     1,      3);
 	this->grid->addWidget(this->song_remaining_time_label,1,  2,     1,      1);
-
+#elifdef STYLE_LINE
+	this->grid->addWidget(this->song_progress_bar,        0,  0,     1,      1);
+	this->grid->addWidget(this->song_info_label,          0,  1,     1,      1);
+	this->grid->addWidget(this->song_remaining_time_label,0,  2,     1,      1);
+#endif
 	//====== update loop timer ======
 	this->update_loop_timer = new QTimer(this);
 	connect(update_loop_timer,&QTimer::timeout,this,&MainWindow::update_ui);
@@ -118,22 +127,20 @@ void MainWindow::update_ui(){
 MainWindow::~MainWindow(){
 	delete this->players;
 }
+//====== deprecated because the idea isnt possible with qt ======
 void MainWindow::mouseMoveEvent(QMouseEvent *event){
 	//this is triggered when the mouse hovers over the widget
-	this->hide();
 	//schedule an attempt to reopen the window
-	QTimer::singleShot(1000,this,&MainWindow::attemptReappear);
+	//QTimer::singleShot(1000,this,&MainWindow::attemptReappear);
 }
 void MainWindow::attemptReappear(){
 	qDebug() << this->geometry();
 	qDebug() << QCursor::pos();
-	if (!this->geometry().contains(QWidget::mapFromGlobal(QCursor::pos()))){
+	if (!this->geometry().contains(QCursor::pos())){
 		//if it is safe to reappear
-		qDebug()<<"reappearing";
-		this->show();
 	}else{
 		//if not try again in 1 second
-		QTimer::singleShot(1000,this,&MainWindow::attemptReappear);
+		//QTimer::singleShot(1000,this,&MainWindow::attemptReappear);
 	}
 }
 
