@@ -8,6 +8,7 @@
 #include <QDBusConnection>
 #include <QWindow>
 #include <QFile>
+#include <QCursor>
 
 #include <unistd.h>
 #include <stdio.h>
@@ -46,7 +47,8 @@ int main(int argc, char **argv){
 
 	//====== create the main window ======
 	MainWindow main_window = MainWindow();
-	main_window.setWindowFlags(main_window.windowFlags() | Qt::WindowStaysOnTopHint);
+	main_window.setWindowFlags(main_window.windowFlags() | Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint);
+	main_window.setAttribute(Qt::WA_TranslucentBackground);
 	//====== display everything ======
 	main_window.show();
 
@@ -58,7 +60,8 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent,Qt::FramelessWindowHint
 	this->setSizePolicy(QSizePolicy::Maximum,QSizePolicy::Maximum);
 
 	//====== main window ======
-	//this->setAttribute(Qt::WA_TranslucentBackground);
+	//so we can detect when the mouse hovers over
+	this->setAttribute(Qt::WA_MouseTracking,true);
 
 	//====== grid layout and widgets ======
 	this->grid = new QGridLayout(this);
@@ -114,3 +117,15 @@ void MainWindow::update_ui(){
 MainWindow::~MainWindow(){
 	delete this->players;
 }
+void MainWindow::mouseMoveEvent(QMouseEvent *event){
+	//this is triggered when the mouse hovers over the widget
+	this->hide();
+	qDebug() << QCursor::pos();
+	qDebug() << this->geometry();
+	//schedule an attempt to reopen the window
+	QTimer::singleShot(1,this,&MainWindow::attemptReappear);
+}
+void MainWindow::attemptReappear(){
+	qDebug()<<"reappearing";
+}
+

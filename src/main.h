@@ -22,6 +22,8 @@ class MainWindow : public QWidget{
 	public:
 	MainWindow(QWidget *parent = nullptr);
 	~MainWindow();
+	void mouseMoveEvent(QMouseEvent *event);
+	void attemptReappear();
 
 	public slots:
 	void update_ui();
