@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QTimer>
+#include <QWidget>
 #include <QSizePolicy>
 #include <QLabel>
 #include <QGridLayout>
@@ -121,11 +122,18 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event){
 	//this is triggered when the mouse hovers over the widget
 	this->hide();
 	//schedule an attempt to reopen the window
-	QTimer::singleShot(1,this,&MainWindow::attemptReappear);
+	QTimer::singleShot(1000,this,&MainWindow::attemptReappear);
 }
 void MainWindow::attemptReappear(){
-	qDebug()<<"reappearing";
-	qDebug() << QCursor::pos();
 	qDebug() << this->geometry();
+	qDebug() << QCursor::pos();
+	if (!this->geometry().contains(QWidget::mapFromGlobal(QCursor::pos()))){
+		//if it is safe to reappear
+		qDebug()<<"reappearing";
+		this->show();
+	}else{
+		//if not try again in 1 second
+		QTimer::singleShot(1000,this,&MainWindow::attemptReappear);
+	}
 }
 
